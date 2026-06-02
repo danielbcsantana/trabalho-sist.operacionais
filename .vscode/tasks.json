@@ -1,0 +1,56 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Iniciar Backend (Flask)",
+      "type": "shell",
+      "command": "python3 app.py",
+      "options": {
+        "cwd": "${workspaceFolder}/backend"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "focus": true
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^(.*)$",
+          "file": 1,
+          "line": 1,
+          "message": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "\\* Running on",
+          "endsPattern": "\\* Running on"
+        }
+      }
+    },
+    {
+      "label": "Abrir Frontend",
+      "type": "shell",
+      "command": "open frontend/index.html",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "silent"
+      }
+    },
+    {
+      "label": "Instalar Dependências",
+      "type": "shell",
+      "command": "pip3 install flask flask-cors",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    }
+  ]
+}

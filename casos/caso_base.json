@@ -1,0 +1,12 @@
+{
+  "descricao": "Caso base — 5 processos com chegadas e bursts variados, sem deadline",
+  "quantum": 2,
+  "sobrecarga": 1,
+  "processos": [
+    {"pid": "P1", "chegada": 0, "execucao": 5, "deadline": null, "prioridade": 2},
+    {"pid": "P2", "chegada": 1, "execucao": 3, "deadline": null, "prioridade": 1},
+    {"pid": "P3", "chegada": 2, "execucao": 8, "deadline": null, "prioridade": 3},
+    {"pid": "P4", "chegada": 3, "execucao": 2, "deadline": null, "prioridade": 2},
+    {"pid": "P5", "chegada": 4, "execucao": 4, "deadline": null, "prioridade": 1}
+  ]
+}

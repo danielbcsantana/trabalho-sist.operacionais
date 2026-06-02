@@ -1,0 +1,12 @@
+{
+  "descricao": "Caso com deadlines — alguns processos cumprem, outros estouram",
+  "quantum": 2,
+  "sobrecarga": 1,
+  "processos": [
+    {"pid": "P1", "chegada": 0, "execucao": 4, "deadline": 6,  "prioridade": 2},
+    {"pid": "P2", "chegada": 1, "execucao": 6, "deadline": 10, "prioridade": 1},
+    {"pid": "P3", "chegada": 2, "execucao": 3, "deadline": 8,  "prioridade": 3},
+    {"pid": "P4", "chegada": 0, "execucao": 5, "deadline": 7,  "prioridade": 2},
+    {"pid": "P5", "chegada": 3, "execucao": 2, "deadline": 20, "prioridade": 4}
+  ]
+}

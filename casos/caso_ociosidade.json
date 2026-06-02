@@ -1,0 +1,11 @@
+{
+  "descricao": "Caso com ociosidade — processos chegam em intervalos, forçando CPU ociosa",
+  "quantum": 2,
+  "sobrecarga": 1,
+  "processos": [
+    {"pid": "P1", "chegada": 0, "execucao": 2, "deadline": null, "prioridade": 1},
+    {"pid": "P2", "chegada": 6, "execucao": 3, "deadline": null, "prioridade": 2},
+    {"pid": "P3", "chegada": 12, "execucao": 4, "deadline": null, "prioridade": 1},
+    {"pid": "P4", "chegada": 18, "execucao": 2, "deadline": null, "prioridade": 3}
+  ]
+}
