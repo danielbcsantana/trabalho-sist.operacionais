@@ -267,29 +267,41 @@
       <!-- Accordion de processos -->
       <div class="space-y-3">
 
-        <div class="bg-surface-container-lowest border border-outline-variant/25 rounded-xl overflow-hidden">
-          <button onclick="toggleAcc(this)" class="w-full flex items-center justify-between p-6 text-left">
-            <div class="flex items-center gap-4">
-              <span class="w-8 h-8 bg-primary/8 rounded-lg flex items-center justify-center flex-shrink-0">
-                <span class="text-secondary font-headline font-bold text-sm">01</span>
-              </span>
-              <span class="font-headline text-primary text-lg">O que é um Processo?</span>
-            </div>
-            <span class="material-symbols-outlined acc-arrow text-on-surface-variant text-xl">expand_more</span>
-          </button>
-          <div class="acc-body px-6 pb-6">
-            <div class="pl-12 space-y-3 text-on-surface-variant font-body text-sm leading-relaxed">
-              <p>Um <strong class="text-primary">processo</strong> é uma instância de um programa em execução. Enquanto o programa é um arquivo estático em disco, o processo é dinâmico — possui estado, contador de programa e pilha próprios.</p>
-              <p>Cada processo contém:</p>
-              <ul class="list-disc pl-5 space-y-1">
-                <li><strong class="text-primary">Código (text)</strong> — instruções do programa</li>
-                <li><strong class="text-primary">Dados (data/heap)</strong> — variáveis globais e alocação dinâmica</li>
-                <li><strong class="text-primary">Pilha (stack)</strong> — variáveis locais e retorno de funções</li>
-                <li><strong class="text-primary">PCB</strong> — Process Control Block com metadados do SO</li>
-              </ul>
-            </div>
-          </div>
-        </div>
+<div class="bg-surface-container-lowest border border-outline-variant/25 rounded-xl overflow-hidden">
+  <button onclick="toggleAcc(this)" class="w-full flex items-center justify-between p-6 text-left">
+    <div class="flex items-center gap-4">
+      <span class="w-8 h-8 bg-primary/8 rounded-lg flex items-center justify-center flex-shrink-0">
+        <span class="text-secondary font-headline font-bold text-sm">01</span>
+      </span>
+      <span class="font-headline text-primary text-lg">O que é um Processo?</span>
+    </div>
+    <span class="material-symbols-outlined acc-arrow text-on-surface-variant text-xl">expand_more</span>
+  </button>
+  <div class="acc-body px-6 pb-6">
+    <div class="pl-12 space-y-3 text-on-surface-variant font-body text-sm leading-relaxed">
+
+      <p>Um <strong class="text-primary">processo</strong> é uma instância de um programa em execução. Enquanto o programa é um arquivo estático em disco — apenas um algoritmo expresso em código —, o processo é dinâmico: possui estado próprio, contador de programa e recursos alocados pelo SO.</p>
+
+      <p>A distinção é sutil, mas crucial. Tanenbaum ilustra bem: imagine um cientista seguindo uma receita de bolo. A <strong class="text-primary">receita é o programa</strong>, o <strong class="text-primary">cientista é o processador</strong> e o <strong class="text-primary">ato de cozinhar é o processo</strong>. Se o filho chega chorando com uma picada de abelha, o cientista salva seu estado (onde estava na receita) e passa a seguir o livro de primeiros socorros — um processo mais prioritário. Quando termina, retoma o bolo do ponto onde parou.</p>
+
+      <p>Vale notar: se o mesmo programa for executado duas vezes simultaneamente, isso resulta em <strong class="text-primary">dois processos distintos</strong>, mesmo que compartilhem o mesmo código em memória.</p>
+
+      <p>Cada processo contém:</p>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong class="text-primary">Código (text)</strong> — instruções do programa</li>
+        <li><strong class="text-primary">Dados (data/heap)</strong> — variáveis globais e alocação dinâmica</li>
+        <li><strong class="text-primary">Pilha (stack)</strong> — variáveis locais e retorno de funções</li>
+        <li><strong class="text-primary">PCB</strong> — Process Control Block com metadados do SO</li>
+      </ul>
+
+      <div class="bg-surface-container-low rounded-lg p-3 mt-1">
+        <div class="text-xs text-tertiary font-bold uppercase tracking-wider mb-1">Multiprogramação</div>
+        <p class="text-xs leading-relaxed">Em sistemas modernos, a CPU alterna rapidamente entre vários processos — cada um por dezenas ou centenas de milissegundos — criando a <strong class="text-primary">ilusão de paralelismo</strong>. Esse mecanismo é chamado de multiprogramação. Na prática, em qualquer instante apenas um processo usa a CPU, mas ao longo do tempo todos avançam.</p>
+      </div>
+
+    </div>
+  </div>
+</div>
 
         <div class="bg-surface-container-lowest border border-outline-variant/25 rounded-xl overflow-hidden">
           <button onclick="toggleAcc(this)" class="w-full flex items-center justify-between p-6 text-left">
@@ -325,10 +337,10 @@
               <div>
                 <div class="text-xs text-tertiary font-bold uppercase tracking-wider mb-3">Diagrama de Transições</div>
 
-                <!-- ESPAÇO PARA IMAGEM -->
-                <div class="bg-surface-container-low border border-outline-variant/30 border-dashed rounded-xl flex items-center justify-center h-48 mb-3">
-                  <span class="text-on-surface-variant text-xs font-label">[ inserir diagrama aqui ]</span>
-                </div>
+                  <!-- ESPAÇO PARA IMAGEM -->
+                  <div class="bg-surface-container-low border border-outline-variant/30 border-dashed rounded-xl overflow-hidden mb-3">
+                    <img src="img/FluxogramaDeEstados.png" alt="Diagrama de transições de estados de um processo" class="w-full h-auto rounded-xl object-contain">
+                  </div>
 
                 <div class="space-y-2">
                   <div class="bg-surface-container-low rounded-lg p-3 flex items-start gap-3">
