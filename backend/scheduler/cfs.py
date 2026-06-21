@@ -1,14 +1,21 @@
-from .base import compute_results, add_arrivals
+from .base import compute_results
+
+
+def _weight(priority):
+    return 1.25 ** (priority - 1)
 
 
 def run(processes, quantum, overhead, **kwargs):
     """
     CFS-Sim: Completely Fair Scheduler (simplified).
 
-    Each process has a vruntime that grows proportionally to its priority:
-        vruntime += slice * priority
-    Lower priority number (higher priority) → slower vruntime growth → more CPU time.
-    The process with the smallest vruntime is always scheduled next.
+    vruntime grows proportionally to priority weight:
+        vruntime += Δt × 1.25^(priority - 1)
+    Lower priority number → smaller weight → slower growth → more CPU time.
+
+    No fixed quantum: the process with smallest vruntime is always selected.
+    Slice size = 1 unit; preemption occurs whenever a ready process has a
+    smaller vruntime than the currently running process.
     """
     time = 0
     gantt = []
@@ -22,14 +29,12 @@ def run(processes, quantum, overhead, **kwargs):
     last_pid = None
     context_switches = 0
     preemptions = 0
-    proc_dict = {p.pid: p for p in processes}
 
     def _arrive(p):
         if ready:
-            min_vr = min(vruntime.get(pid, 0) for pid in [r.pid for r in ready])
-            vruntime[p.pid] = min_vr
+            vruntime[p.pid] = min(vruntime[r.pid] for r in ready)
         else:
-            vruntime[p.pid] = time
+            vruntime[p.pid] = float(time)
         ready.append(p)
 
     def _add_arrivals(t):
@@ -49,10 +54,11 @@ def run(processes, quantum, overhead, **kwargs):
             last_pid = None
             continue
 
-        current = min(ready, key=lambda p: (vruntime.get(p.pid, 0), p.pid))
+        current = min(ready, key=lambda p: (vruntime[p.pid], p.pid))
         ready.remove(current)
 
-        if last_pid is not None:
+        # Overhead only when process changes
+        if last_pid is not None and last_pid != current.pid:
             if overhead > 0:
                 gantt.append({'type': 'overhead', 'pid': last_pid,
                               'start': time, 'end': time + overhead})
@@ -60,16 +66,17 @@ def run(processes, quantum, overhead, **kwargs):
                 _add_arrivals(time)
             context_switches += 1
 
-        slice_t = min(quantum, remaining[current.pid])
-        start = time
-        start_times[current.pid].append(start)
-        gantt.append({'type': 'execution', 'pid': current.pid,
-                      'start': start, 'end': start + slice_t})
-        time = start + slice_t
-        remaining[current.pid] -= slice_t
+        # New start time only when process changes
+        if current.pid != last_pid:
+            start_times[current.pid].append(time)
 
-        # vruntime grows slower for high-priority (low number) processes
-        vruntime[current.pid] = vruntime.get(current.pid, 0) + slice_t * current.priority
+        # Dynamic slice of 1 unit — no fixed quantum
+        slice_t = min(1, remaining[current.pid])
+        gantt.append({'type': 'execution', 'pid': current.pid,
+                      'start': time, 'end': time + slice_t})
+        time += slice_t
+        remaining[current.pid] -= slice_t
+        vruntime[current.pid] += slice_t * _weight(current.priority)
 
         last_pid = current.pid
         _add_arrivals(time)
@@ -78,7 +85,7 @@ def run(processes, quantum, overhead, **kwargs):
             end_times[current.pid] = time
         else:
             if ready:
-                best_vr = min(vruntime.get(p.pid, 0) for p in ready)
+                best_vr = min(vruntime[p.pid] for p in ready)
                 if best_vr < vruntime[current.pid]:
                     preemptions += 1
             ready.append(current)
