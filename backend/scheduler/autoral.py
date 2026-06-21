@@ -77,13 +77,6 @@ def run(processes, quantum, overhead, **kwargs):
             all_candidates = ready[:]
             current = max(all_candidates, key=lambda p: _score(p, time, remaining, all_candidates))
             ready.remove(current)
-            if last_pid is not None:
-                if overhead > 0:
-                    gantt.append({'type': 'overhead', 'pid': last_pid,
-                                  'start': time, 'end': time + overhead})
-                    time += overhead
-                    add_arrivals(pending, ready, time)
-                context_switches += 1
             start_times[current.pid].append(time)
 
         if current is None:

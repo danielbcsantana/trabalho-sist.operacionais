@@ -570,6 +570,25 @@
                 </ul>
               </div>
             </div>
+            <div class="bg-primary/4 rounded-lg overflow-hidden mt-4">
+              <div class="px-4 py-2 border-b border-outline-variant/20">
+                <span class="text-xs font-label font-bold text-primary/60 uppercase tracking-wider">Python</span>
+              </div>
+              <pre class="p-4 text-xs font-mono text-on-surface leading-5 overflow-x-auto m-0">def fcfs(processos):
+    fila = sorted(processos, key=lambda p: p.chegada)
+    tempo = 0
+    gantt = []
+
+    for p in fila:
+        if tempo &lt; p.chegada:          # CPU ociosa
+            tempo = p.chegada
+        p.inicio = tempo
+        tempo += p.execucao            # executa sem interrupção
+        p.fim = tempo
+        gantt.append({'pid': p.pid, 'inicio': p.inicio, 'fim': p.fim})
+
+    return gantt</pre>
+            </div>
           </div>
         </div>
       </div>
@@ -607,6 +626,33 @@
                 </ul>
               </div>
             </div>
+            <div class="bg-primary/4 rounded-lg overflow-hidden mt-4">
+              <div class="px-4 py-2 border-b border-outline-variant/20">
+                <span class="text-xs font-label font-bold text-primary/60 uppercase tracking-wider">Python</span>
+              </div>
+              <pre class="p-4 text-xs font-mono text-on-surface leading-5 overflow-x-auto m-0">def sjf(processos):
+    pendentes = sorted(processos, key=lambda p: p.chegada)
+    prontos, tempo, gantt = [], 0, []
+
+    while pendentes or prontos:
+        # Move os que chegaram para a fila de prontos
+        prontos += [p for p in pendentes if p.chegada &lt;= tempo]
+        pendentes = [p for p in pendentes if p.chegada &gt; tempo]
+
+        if not prontos:               # CPU ociosa
+            tempo = pendentes[0].chegada
+            continue
+
+        # Seleciona o menor burst (não-preemptivo)
+        p = min(prontos, key=lambda x: x.execucao)
+        prontos.remove(p)
+        p.inicio = tempo
+        tempo += p.execucao
+        p.fim = tempo
+        gantt.append({'pid': p.pid, 'inicio': p.inicio, 'fim': p.fim})
+
+    return gantt</pre>
+            </div>
           </div>
         </div>
       </div>
@@ -629,6 +675,43 @@
           <div class="pl-12 space-y-3 text-on-surface-variant font-body text-sm leading-relaxed">
             <p>Cada processo recebe uma <strong class="text-primary">prioridade numérica</strong>. O processo de maior prioridade sempre é executado. Pode ser estático (definido na criação) ou dinâmico (ajustado pelo SO). Risco de <em>starvation</em> — processos de baixa prioridade nunca executam.</p>
             <p>A solução clássica para starvation é o <strong class="text-primary">envelhecimento (aging)</strong>: a prioridade de um processo aumenta progressivamente enquanto ele aguarda.</p>
+            <div class="bg-primary/4 rounded-lg overflow-hidden mt-4">
+              <div class="px-4 py-2 border-b border-outline-variant/20">
+                <span class="text-xs font-label font-bold text-primary/60 uppercase tracking-wider">Python</span>
+              </div>
+              <pre class="p-4 text-xs font-mono text-on-surface leading-5 overflow-x-auto m-0">def prioridade_preemptiva(processos):
+    pendentes = sorted(processos, key=lambda p: p.chegada)
+    prontos, tempo, gantt = [], 0, []
+    atual = None
+    restante = {p.pid: p.execucao for p in processos}
+
+    while pendentes or prontos or atual:
+        prontos += [p for p in pendentes if p.chegada &lt;= tempo]
+        pendentes = [p for p in pendentes if p.chegada &gt; tempo]
+
+        if atual is None and prontos:
+            atual = min(prontos, key=lambda p: p.prioridade)
+            prontos.remove(atual)
+
+        # Verifica preempção: chegou alguém mais prioritário?
+        if prontos and atual:
+            melhor = min(prontos, key=lambda p: p.prioridade)
+            if melhor.prioridade &lt; atual.prioridade:
+                prontos.append(atual)
+                atual = melhor
+                prontos.remove(melhor)
+
+        if atual:
+            gantt.append({'pid': atual.pid, 'inicio': tempo, 'fim': tempo + 1})
+            restante[atual.pid] -= 1
+            tempo += 1
+            if restante[atual.pid] == 0:
+                atual = None
+        else:
+            tempo += 1   # CPU ociosa
+
+    return gantt</pre>
+            </div>
           </div>
         </div>
       </div>
@@ -654,6 +737,119 @@
             <div class="bg-surface-container-low rounded-lg p-3 mt-2">
               <div class="text-xs text-tertiary font-bold uppercase tracking-wider mb-2">Critério de escolha do Quantum</div>
               <p class="text-xs">Regra geral: 80% dos bursts de CPU devem ser menores que o quantum. Tipicamente entre 10 ms e 100 ms.</p>
+            </div>
+            <div class="bg-primary/4 rounded-lg overflow-hidden mt-4">
+              <div class="px-4 py-2 border-b border-outline-variant/20">
+                <span class="text-xs font-label font-bold text-primary/60 uppercase tracking-wider">Python</span>
+              </div>
+              <pre class="p-4 text-xs font-mono text-on-surface leading-5 overflow-x-auto m-0">def round_robin(processos, quantum):
+    pendentes = sorted(processos, key=lambda p: p.chegada)
+    fila, tempo, gantt = [], 0, []
+    restante = {p.pid: p.execucao for p in processos}
+
+    while pendentes or fila:
+        fila += [p for p in pendentes if p.chegada &lt;= tempo]
+        pendentes = [p for p in pendentes if p.chegada &gt; tempo]
+
+        if not fila:                  # CPU ociosa
+            tempo = pendentes[0].chegada
+            continue
+
+        p = fila.pop(0)               # FIFO dentro da fila circular
+        fatia = min(quantum, restante[p.pid])
+        gantt.append({'pid': p.pid, 'inicio': tempo, 'fim': tempo + fatia})
+        tempo += fatia
+        restante[p.pid] -= fatia
+
+        # Coleta chegadas durante a fatia
+        fila += [x for x in pendentes if x.chegada &lt;= tempo]
+        pendentes = [x for x in pendentes if x.chegada &gt; tempo]
+
+        if restante[p.pid] &gt; 0:      # Não terminou → volta para o fim da fila
+            fila.append(p)
+
+    return gantt</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EDF -->
+      <div class="bg-surface-container-lowest border border-outline-variant/25 rounded-xl overflow-hidden">
+        <button onclick="toggleAcc(this)" class="w-full flex items-center justify-between p-6 text-left">
+          <div class="flex items-center gap-4">
+            <span class="w-8 h-8 bg-primary/8 rounded-lg flex items-center justify-center flex-shrink-0">
+              <span class="text-secondary font-headline font-bold text-sm">05</span>
+            </span>
+            <div>
+              <span class="font-headline text-primary text-lg">EDF — Earliest Deadline First</span>
+              <span class="ml-3 text-xs bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded-full font-label">Preemptivo</span>
+            </div>
+          </div>
+          <span class="material-symbols-outlined acc-arrow text-on-surface-variant text-xl">expand_more</span>
+        </button>
+        <div class="acc-body px-6 pb-6">
+          <div class="pl-12 space-y-3 text-on-surface-variant font-body text-sm leading-relaxed">
+            <p><strong class="text-primary">Earliest Deadline First</strong> — o processo com o deadline mais próximo sempre recebe a CPU. É um algoritmo <em>ótimo</em> para sistemas de tempo real: se existir uma escala viável (que respeite todos os deadlines), o EDF a encontrará.</p>
+            <p>A preempção ocorre sempre que um novo processo chega com deadline menor que o do processo em execução. Processos sem deadline são tratados como deadline infinito e ficam com a menor prioridade.</p>
+            <div class="grid grid-cols-2 gap-3 mt-3">
+              <div class="bg-surface-container-low rounded-lg p-3">
+                <div class="text-xs text-tertiary font-bold uppercase tracking-wider mb-1">Vantagens</div>
+                <ul class="text-xs space-y-1">
+                  <li>✓ Ótimo para tempo real</li>
+                  <li>✓ Utilização de CPU até 100%</li>
+                  <li>✓ Minimiza deadlines perdidos</li>
+                </ul>
+              </div>
+              <div class="bg-surface-container-low rounded-lg p-3">
+                <div class="text-xs text-secondary font-bold uppercase tracking-wider mb-1">Desvantagens</div>
+                <ul class="text-xs space-y-1">
+                  <li>✗ Requer deadlines conhecidos</li>
+                  <li>✗ Overhead de reescalonamento</li>
+                  <li>✗ Falha catastrófica se sobrecarregado</li>
+                </ul>
+              </div>
+            </div>
+            <div class="bg-primary/4 rounded-lg overflow-hidden mt-4">
+              <div class="px-4 py-2 border-b border-outline-variant/20">
+                <span class="text-xs font-label font-bold text-primary/60 uppercase tracking-wider">Python</span>
+              </div>
+              <pre class="p-4 text-xs font-mono text-on-surface leading-5 overflow-x-auto m-0">def edf(processos):
+    pendentes = sorted(processos, key=lambda p: p.chegada)
+    prontos, tempo, gantt = [], 0, []
+    atual = None
+    restante = {p.pid: p.execucao for p in processos}
+    INF = float('inf')
+
+    while pendentes or prontos or atual:
+        prontos += [p for p in pendentes if p.chegada &lt;= tempo]
+        pendentes = [p for p in pendentes if p.chegada &gt; tempo]
+
+        if atual is None and prontos:
+            # Menor deadline primeiro
+            atual = min(prontos, key=lambda p: p.deadline or INF)
+            prontos.remove(atual)
+
+        # Verifica preempção: chegou alguém com deadline mais urgente?
+        if prontos and atual:
+            urgente = min(prontos, key=lambda p: p.deadline or INF)
+            dl_urgente = urgente.deadline or INF
+            dl_atual   = atual.deadline   or INF
+            if dl_urgente &lt; dl_atual:
+                prontos.append(atual)
+                atual = urgente
+                prontos.remove(urgente)
+
+        if atual:
+            gantt.append({'pid': atual.pid, 'inicio': tempo, 'fim': tempo + 1})
+            restante[atual.pid] -= 1
+            tempo += 1
+            if restante[atual.pid] == 0:
+                atual = None
+        else:
+            tempo += 1   # CPU ociosa
+
+    return gantt</pre>
             </div>
           </div>
         </div>
@@ -703,6 +899,13 @@
               <td class="px-5 py-3 text-on-surface-variant">Moderada</td>
               <td class="px-5 py-3 text-tertiary">Não</td>
               <td class="px-5 py-3 text-on-surface-variant">Sistemas interativos, Linux</td>
+            </tr>
+            <tr class="border-t border-outline-variant/15">
+              <td class="px-5 py-3 font-semibold text-primary">EDF</td>
+              <td class="px-5 py-3">Sim</td>
+              <td class="px-5 py-3 text-tertiary">Mínima (c/ deadlines)</td>
+              <td class="px-5 py-3 text-secondary">Sim (sem deadline)</td>
+              <td class="px-5 py-3 text-on-surface-variant">Tempo real, sistemas embarcados</td>
             </tr>
           </tbody>
         </table>

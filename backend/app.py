@@ -6,7 +6,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 from models.processo import Processo
-from scheduler import fcfs, sjf, round_robin, priority, edf, cfs, autoral
+from scheduler import fcfs, sjf, round_robin, priority, edf, autoral
 
 app = Flask(__name__)
 CORS(app)
@@ -17,7 +17,6 @@ ALGORITHMS = {
     'round_robin': round_robin.run,
     'priority': priority.run,
     'edf': edf.run,
-    'cfs': cfs.run,
     'autoral': autoral.run,
 }
 
@@ -27,7 +26,6 @@ ALGORITHM_LABELS = {
     'round_robin': 'Round Robin',
     'priority': 'Prioridade Preemptiva',
     'edf': 'EDF',
-    'cfs': 'CFS-Sim',
     'autoral': 'APS (Autoral)',
 }
 

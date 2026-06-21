@@ -11,6 +11,7 @@ def run(processes, quantum, overhead, **kwargs):
     pending = sorted(processes, key=lambda p: (p.arrival, p.pid))
     ready = []
     last_pid = None
+    last_was_preempted = False   # True só quando o processo anterior foi interrompido pelo quantum
     context_switches = 0
     preemptions = 0
 
@@ -23,11 +24,13 @@ def run(processes, quantum, overhead, **kwargs):
             time = next_t
             add_arrivals(pending, ready, time)
             last_pid = None
+            last_was_preempted = False
             continue
 
         current = ready.pop(0)
 
-        if last_pid is not None:
+        # Sobrecarga só quando o processo anterior foi preemptado (ainda tinha tempo restante)
+        if last_pid is not None and last_was_preempted:
             if overhead > 0:
                 gantt.append({'type': 'overhead', 'pid': last_pid,
                               'start': time, 'end': time + overhead})
@@ -48,9 +51,11 @@ def run(processes, quantum, overhead, **kwargs):
 
         if remaining[current.pid] == 0:
             end_times[current.pid] = time
+            last_was_preempted = False
         else:
-            # Quantum expired — preemption
+            # Quantum expirou e processo ainda tem execução pendente → preempção real
             preemptions += 1
+            last_was_preempted = True
             ready.append(current)
 
     return compute_results(processes, start_times, end_times, gantt, context_switches, preemptions)

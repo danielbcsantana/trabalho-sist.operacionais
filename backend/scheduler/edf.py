@@ -37,13 +37,6 @@ def run(processes, quantum, overhead, **kwargs):
         if current is None and ready:
             current = min(ready, key=_deadline_key)
             ready.remove(current)
-            if last_pid is not None:
-                if overhead > 0:
-                    gantt.append({'type': 'overhead', 'pid': last_pid,
-                                  'start': time, 'end': time + overhead})
-                    time += overhead
-                    add_arrivals(pending, ready, time)
-                context_switches += 1
             start_times[current.pid].append(time)
 
         if current is None:

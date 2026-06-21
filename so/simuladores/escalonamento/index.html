@@ -109,7 +109,6 @@
           <option value="round_robin">Round Robin</option>
           <option value="priority">Prioridade Preemptiva</option>
           <option value="edf">EDF — Earliest Deadline First</option>
-          <option value="cfs">CFS-Sim</option>
           <option value="autoral">APS — Autoral</option>
           <option value="todos">— Todos (comparar) —</option>
         </select>
@@ -136,7 +135,6 @@
       <div class="btn-group">
         <button class="btn btn-primary btn-full" id="btnRun">▶ Simular</button>
         <button class="btn btn-success btn-full" id="btnCompare">⇄ Comparar Todos</button>
-        <button class="btn btn-ghost btn-full" id="btnExample">✦ Gerar Exemplo</button>
         <button class="btn btn-ghost btn-full" id="btnExport">↓ Exportar JSON</button>
       </div>
     </div>
@@ -211,26 +209,33 @@
           <div class="section-title"><span class="dot" style="background:var(--secondary)"></span>Gráfico de Gantt</div>
           <span id="algLabel" style="font-size:.8rem;color:var(--primary-med);font-weight:600"></span>
         </div>
+        <!-- Step controls (visible only in step mode) -->
+        <div id="stepControls" style="display:none;align-items:center;gap:10px;margin:10px 0 4px;flex-wrap:wrap">
+          <button id="btnPrevStep" class="btn btn-ghost btn-sm" onclick="prevStep()">← Anterior</button>
+          <span id="stepLabel" style="font-size:.8rem;color:var(--text-muted);font-weight:500;min-width:120px;text-align:center"></span>
+          <button id="btnNextStep" class="btn btn-primary btn-sm" onclick="nextStep()">Próximo →</button>
+          <button id="btnShowAll" class="btn btn-ghost btn-sm" onclick="showAllSteps()" style="margin-left:4px">Ver tudo</button>
+        </div>
         <div class="gantt-wrapper">
           <canvas id="ganttCanvas" height="160"></canvas>
         </div>
         <div class="gantt-legend" id="ganttLegend"></div>
       </div>
 
-      <div>
+      <div id="metricsDiv" style="display:none">
         <div class="section-title" style="margin-bottom:12px"><span class="dot" style="background:var(--warn)"></span>Métricas Globais</div>
         <div class="metrics-grid" id="metricsGrid"></div>
       </div>
 
-      <div>
+      <div id="resultTableDiv" style="display:none">
         <div class="section-title" style="margin-bottom:12px"><span class="dot" style="background:var(--danger)"></span>Resultados por Processo</div>
         <div class="table-wrapper">
           <table class="result-table" id="resultTable">
             <thead>
               <tr>
-                <th>ID</th><th>Chegada</th><th>Execução</th><th>Deadline</th>
+                <th>ID</th><th>Chegada</th><th>Execução</th><th class="col-deadline">Deadline</th>
                 <th>Prioridade</th><th>Início(s)</th><th>Término</th>
-                <th>Espera</th><th>Turnaround</th><th>Deadline OK?</th>
+                <th>Espera</th><th>Turnaround</th><th class="col-deadline">Deadline OK?</th>
               </tr>
             </thead>
             <tbody id="resultBody"></tbody>
@@ -244,8 +249,7 @@
           <table class="compare-table" id="compareTable">
             <thead>
               <tr>
-                <th>Algoritmo</th><th>Espera Média</th><th>Turnaround Médio</th>
-                <th>Throughput</th><th>CPU Ociosa %</th><th>Preempções</th><th>Trocas Contexto</th>
+                <th>Algoritmo</th><th>Espera Média</th><th>Turnaround Médio</th><th>Preempções</th>
               </tr>
             </thead>
             <tbody id="compareBody"></tbody>

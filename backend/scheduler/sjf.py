@@ -28,14 +28,6 @@ def run(processes, quantum, overhead, **kwargs):
         current = min(ready, key=lambda p: (remaining[p.pid], p.pid))
         ready.remove(current)
 
-        if last_pid is not None:
-            if overhead > 0:
-                gantt.append({'type': 'overhead', 'pid': last_pid,
-                              'start': time, 'end': time + overhead})
-                time += overhead
-                add_arrivals(pending, ready, time)
-            context_switches += 1
-
         start = time
         start_times[current.pid].append(start)
         end = time + remaining[current.pid]

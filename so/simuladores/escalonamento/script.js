@@ -12,14 +12,25 @@ const PROCESS_COLORS = [
 const OVERHEAD_COLOR  = '#ba1a1a';
 const IDLE_COLOR      = '#c5c6d2';
 const DEADLINE_COLOR  = '#bdab51';
-const MISS_COLOR      = '#8b0000';   // exec block when deadline missed
+const MISS_COLOR      = '#8b0000';
 
 // ─── State ───────────────────────────────────────────────────────
 let processes = [];
 let pidCounter = 1;
-let currentResults = null;   // single result
-let allResults    = null;    // compare-all result
-let activeAlg     = null;    // active tab in compare mode
+let currentResults = null;
+let allResults    = null;
+let activeAlg     = null;
+
+// Step-by-step state
+let simGantt        = [];
+let simProcs        = {};
+let simStep         = 0;
+let simMaxStep      = 0;
+let simStepMode     = false;
+let simShowDeadlines = false;
+
+// Algoritmos que usam deadline como critério de escalonamento
+const DEADLINE_ALGORITHMS = new Set(['edf']);
 
 // ─── DOM refs ────────────────────────────────────────────────────
 const procBody       = document.getElementById('procBody');
@@ -35,6 +46,10 @@ const compareSection = document.getElementById('compareSection');
 const compareBody    = document.getElementById('compareBody');
 const compareTabs    = document.getElementById('compareTabs');
 const loadingOverlay = document.getElementById('loadingOverlay');
+const stepControls   = document.getElementById('stepControls');
+const stepLabel      = document.getElementById('stepLabel');
+const metricsDiv     = document.getElementById('metricsDiv');
+const resultTableDiv = document.getElementById('resultTableDiv');
 
 // ─── Utility ─────────────────────────────────────────────────────
 function toast(msg, type = '') {
@@ -84,7 +99,6 @@ function renderProcTable() {
     procBody.appendChild(tr);
   });
 
-  // Bind change events
   procBody.querySelectorAll('input').forEach(inp => {
     inp.addEventListener('change', e => {
       const idx = +e.target.dataset.idx;
@@ -130,20 +144,10 @@ function clearProcs() {
 function hideResults() {
   resultsSection.classList.add('hidden');
   emptyState.classList.remove('hidden');
-}
-
-// ─── Example generator ────────────────────────────────────────────
-function generateExample() {
-  processes = [
-    { pid:'P1', chegada:0,  execucao:5, deadline:null, prioridade:2, num_paginas:3 },
-    { pid:'P2', chegada:1,  execucao:3, deadline:null, prioridade:1, num_paginas:2 },
-    { pid:'P3', chegada:2,  execucao:8, deadline:null, prioridade:3, num_paginas:5 },
-    { pid:'P4', chegada:3,  execucao:2, deadline:null, prioridade:2, num_paginas:1 },
-    { pid:'P5', chegada:4,  execucao:4, deadline:null, prioridade:1, num_paginas:4 },
-  ];
-  pidCounter = 6;
-  renderProcTable();
-  toast('Exemplo carregado!', 'success');
+  stepControls.style.display = 'none';
+  metricsDiv.style.display = 'none';
+  resultTableDiv.style.display = 'none';
+  simStepMode = false;
 }
 
 // ─── Load caso from backend ───────────────────────────────────────
@@ -232,7 +236,7 @@ async function simulate(algorithm) {
   }
 }
 
-// ─── Display single result ────────────────────────────────────────
+// ─── Display single result (step-by-step mode) ────────────────────
 function showSingleResult(data) {
   compareTabs.classList.add('hidden');
   compareSection.classList.add('hidden');
@@ -240,18 +244,90 @@ function showSingleResult(data) {
   emptyState.classList.add('hidden');
   resultsSection.classList.remove('hidden');
 
-  drawGantt(data.gantt, data.processes);
+  const showDeadlines = DEADLINE_ALGORITHMS.has(data.algorithm);
+
+  // Pre-render metrics and table but keep hidden until revealed
   renderMetrics(data.metrics);
-  renderResultTable(data.processes);
+  renderResultTable(data.processes, showDeadlines);
+  renderGanttLegend(data.processes);
+
+  // Initialize step mode
+  simGantt         = data.gantt || [];
+  simProcs         = data.processes;
+  simStep          = 0;
+  simMaxStep       = simGantt.length;
+  simStepMode      = true;
+  simShowDeadlines = showDeadlines;
+
+  metricsDiv.style.display     = 'none';
+  resultTableDiv.style.display = 'none';
+  stepControls.style.display   = 'flex';
+
+  updateStepUI();
 }
 
-// ─── Display compare results ──────────────────────────────────────
+// ─── Step navigation ──────────────────────────────────────────────
+function updateStepUI() {
+  const btnPrev    = document.getElementById('btnPrevStep');
+  const btnNext    = document.getElementById('btnNextStep');
+  const btnAll     = document.getElementById('btnShowAll');
+  const isComplete = simStep >= simMaxStep;
+
+  btnPrev.disabled = simStep === 0;
+
+  if (simStep === 0) {
+    stepLabel.textContent = 'Pressione Próximo para iniciar';
+  } else {
+    const execSteps = simGantt.slice(0, simStep).filter(e => e.type === 'execution').length;
+    stepLabel.textContent = `Etapa ${simStep} de ${simMaxStep}`;
+  }
+
+  if (isComplete) {
+    btnNext.textContent  = '✓ Concluído';
+    btnNext.disabled     = true;
+    btnAll.style.display = 'none';
+    metricsDiv.style.display     = 'block';
+    resultTableDiv.style.display = 'block';
+  } else {
+    btnNext.textContent  = 'Próximo →';
+    btnNext.disabled     = false;
+    btnAll.style.display = '';
+    metricsDiv.style.display     = 'none';
+    resultTableDiv.style.display = 'none';
+  }
+
+  drawGantt(simGantt, simProcs, simStep, simShowDeadlines);
+}
+
+function prevStep() {
+  if (simStep > 0) {
+    simStep--;
+    updateStepUI();
+  }
+}
+
+function nextStep() {
+  if (simStep < simMaxStep) {
+    simStep++;
+    updateStepUI();
+  }
+}
+
+function showAllSteps() {
+  simStep = simMaxStep;
+  updateStepUI();
+}
+
+// ─── Display compare results (immediate, no step mode) ────────────
 function showCompareResults(results) {
   emptyState.classList.add('hidden');
   resultsSection.classList.remove('hidden');
   compareSection.classList.remove('hidden');
+  stepControls.style.display   = 'none';
+  metricsDiv.style.display     = 'block';
+  resultTableDiv.style.display = 'block';
+  simStepMode = false;
 
-  // Build tabs
   compareTabs.classList.remove('hidden');
   compareTabs.innerHTML = '';
   const algNames = Object.keys(results).filter(k => !results[k].error);
@@ -268,9 +344,10 @@ function showCompareResults(results) {
     activeAlg = algNames[0];
     const d = results[activeAlg];
     algLabel.textContent = d.label || activeAlg;
-    drawGantt(d.gantt, d.processes);
+    const showDL = DEADLINE_ALGORITHMS.has(activeAlg);
+    drawGantt(d.gantt, d.processes, undefined, showDL);
     renderMetrics(d.metrics);
-    renderResultTable(d.processes);
+    renderResultTable(d.processes, showDL);
   }
 
   renderCompareTable(results);
@@ -281,31 +358,37 @@ function switchTab(alg, results) {
   activeAlg = alg;
   const d = results[alg];
   algLabel.textContent = d.label || alg;
-  drawGantt(d.gantt, d.processes);
+  const showDL = DEADLINE_ALGORITHMS.has(alg);
+  drawGantt(d.gantt, d.processes, undefined, showDL);
   renderMetrics(d.metrics);
-  renderResultTable(d.processes);
+  renderResultTable(d.processes, showDL);
 }
 
 // ─── Gantt chart ──────────────────────────────────────────────────
-function drawGantt(gantt, procResults) {
+// maxStep: how many events to draw (undefined = draw all)
+// showDeadlines: whether to draw deadline markers and miss coloring (only for EDF)
+function drawGantt(gantt, procResults, maxStep, showDeadlines = true) {
   if (!gantt || gantt.length === 0) return;
 
-  const ctx = ganttCanvas.getContext('2d');
-  const dpr = window.devicePixelRatio || 1;
+  const visibleGantt = (maxStep !== undefined) ? gantt.slice(0, maxStep) : gantt;
+  const fullGantt    = gantt;
 
-  const MARGIN_L  = 14;
-  const MARGIN_R  = 16;
+  const ctx  = ganttCanvas.getContext('2d');
+  const dpr  = window.devicePixelRatio || 1;
+
+  const MARGIN_L   = 14;
+  const MARGIN_R   = 40;   // extra right margin for arrow
   const MARGIN_TOP = 20;
-  const BLOCK_H   = 56;
-  const TICK_H    = 16;
-  const LABEL_H   = 14;
-  const TOTAL_H   = MARGIN_TOP + BLOCK_H + TICK_H + LABEL_H + 12;
+  const BLOCK_H    = 56;
+  const TICK_H     = 16;
+  const LABEL_H    = 14;
+  const TOTAL_H    = MARGIN_TOP + BLOCK_H + TICK_H + LABEL_H + 12;
 
-  const maxTime = Math.max(...gantt.map(e => e.end), 1);
+  const maxTime    = Math.max(...fullGantt.map(e => e.end), 1);
   const containerW = ganttCanvas.parentElement.clientWidth || 900;
-  const availW  = containerW - MARGIN_L - MARGIN_R;
-  const PPU     = Math.max(30, Math.min(80, availW / maxTime));  // pixels per time unit
-  const totalW  = maxTime * PPU + MARGIN_L + MARGIN_R;
+  const availW     = containerW - MARGIN_L - MARGIN_R;
+  const PPU        = Math.max(30, Math.min(80, availW / maxTime));
+  const totalW     = maxTime * PPU + MARGIN_L + MARGIN_R;
 
   ganttCanvas.style.width  = totalW + 'px';
   ganttCanvas.style.height = TOTAL_H + 'px';
@@ -317,19 +400,30 @@ function drawGantt(gantt, procResults) {
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, totalW, TOTAL_H);
 
-  // Grid lines
-  ctx.strokeStyle = '#c5c6d2';
-  ctx.lineWidth = 0.5;
+  // Grid lines (full timeline, dimmed for future)
   for (let t = 0; t <= maxTime; t++) {
     const x = MARGIN_L + t * PPU;
+    ctx.strokeStyle = '#c5c6d2';
+    ctx.lineWidth = 0.5;
     ctx.beginPath();
     ctx.moveTo(x, MARGIN_TOP);
     ctx.lineTo(x, MARGIN_TOP + BLOCK_H);
     ctx.stroke();
   }
 
-  // Draw events
-  gantt.forEach(ev => {
+  // Future events (ghost, very faded) — drawn first as background
+  if (maxStep !== undefined && maxStep < fullGantt.length) {
+    fullGantt.slice(maxStep).forEach(ev => {
+      const x = MARGIN_L + ev.start * PPU;
+      const w = (ev.end - ev.start) * PPU;
+      ctx.fillStyle = 'rgba(197,198,210,0.18)';
+      roundRect(ctx, x + 1, MARGIN_TOP + 1, w - 2, BLOCK_H - 2, 5);
+      ctx.fill();
+    });
+  }
+
+  // Draw visible events
+  visibleGantt.forEach(ev => {
     const x = MARGIN_L + ev.start * PPU;
     const w = (ev.end - ev.start) * PPU;
     const y = MARGIN_TOP;
@@ -341,18 +435,15 @@ function drawGantt(gantt, procResults) {
       color = IDLE_COLOR;
     } else {
       const pr = procResults[ev.pid];
-      const missed = pr && pr.deadline_met === false;
-      // If deadline missed and this block is after deadline → show in miss color
+      const missed  = showDeadlines && pr && pr.deadline_met === false;
       const afterDL = missed && pr.deadline !== null && ev.start >= pr.deadline;
       color = afterDL ? MISS_COLOR : pidColor(ev.pid);
     }
 
-    // Block fill
     ctx.fillStyle = color;
     roundRect(ctx, x + 1, y + 1, w - 2, BLOCK_H - 2, 5);
     ctx.fill();
 
-    // Label inside block
     if (w > 22) {
       ctx.fillStyle = '#fff';
       ctx.font = `bold ${Math.min(13, w * 0.35)}px Work Sans, sans-serif`;
@@ -365,9 +456,42 @@ function drawGantt(gantt, procResults) {
     }
   });
 
-  // Deadline lines
+  // Arrow indicator at the current position (step mode, not yet complete)
+  if (maxStep !== undefined && maxStep > 0 && maxStep < fullGantt.length) {
+    const lastVisible = visibleGantt[visibleGantt.length - 1];
+    const arrowX = MARGIN_L + lastVisible.end * PPU;
+    const arrowMid = MARGIN_TOP + BLOCK_H / 2;
+
+    ctx.save();
+    ctx.fillStyle = '#435b9f';
+    ctx.strokeStyle = '#435b9f';
+    ctx.lineWidth = 2;
+
+    // Arrow shaft
+    ctx.beginPath();
+    ctx.moveTo(arrowX + 2, arrowMid);
+    ctx.lineTo(arrowX + 14, arrowMid);
+    ctx.stroke();
+
+    // Arrow head
+    ctx.beginPath();
+    ctx.moveTo(arrowX + 14, arrowMid - 6);
+    ctx.lineTo(arrowX + 22, arrowMid);
+    ctx.lineTo(arrowX + 14, arrowMid + 6);
+    ctx.closePath();
+    ctx.fill();
+
+    // Pulsing dot on the shaft start
+    ctx.beginPath();
+    ctx.arc(arrowX + 2, arrowMid, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  // Deadline lines (só para algoritmos baseados em deadline)
   const drawn = new Set();
-  Object.values(procResults).forEach(pr => {
+  if (showDeadlines) Object.values(procResults).forEach(pr => {
     if (pr.deadline !== null && !drawn.has(pr.deadline)) {
       drawn.add(pr.deadline);
       const x = MARGIN_L + pr.deadline * PPU;
@@ -380,7 +504,6 @@ function drawGantt(gantt, procResults) {
       ctx.lineTo(x, MARGIN_TOP + BLOCK_H + 4);
       ctx.stroke();
       ctx.setLineDash([]);
-      // Small triangle marker
       ctx.fillStyle = DEADLINE_COLOR;
       ctx.beginPath();
       ctx.moveTo(x - 5, MARGIN_TOP - 6);
@@ -405,7 +528,6 @@ function drawGantt(gantt, procResults) {
     ctx.fillStyle = '#757682';
     ctx.fillText(t, x, MARGIN_TOP + BLOCK_H + 6);
   }
-  // Always draw last tick
   if (maxTime % step !== 0) {
     const x = MARGIN_L + maxTime * PPU;
     ctx.fillStyle = '#444650';
@@ -414,7 +536,6 @@ function drawGantt(gantt, procResults) {
     ctx.fillText(maxTime, x, MARGIN_TOP + BLOCK_H + 6);
   }
 
-  // Legend
   renderGanttLegend(procResults);
 }
 
@@ -435,7 +556,6 @@ function roundRect(ctx, x, y, w, h, r) {
 function renderGanttLegend(procResults) {
   ganttLegend.innerHTML = '';
 
-  // Process colors
   processes.forEach((p, i) => {
     const color = PROCESS_COLORS[i % PROCESS_COLORS.length];
     const item = document.createElement('div');
@@ -444,7 +564,6 @@ function renderGanttLegend(procResults) {
     ganttLegend.appendChild(item);
   });
 
-  // Fixed items
   [
     ['Sobrecarga (SO)', OVERHEAD_COLOR],
     ['Ocioso', IDLE_COLOR],
@@ -460,12 +579,12 @@ function renderGanttLegend(procResults) {
 
 // ─── Metrics ──────────────────────────────────────────────────────
 const METRIC_DEFS = [
-  { key: 'avg_wait',           label: 'Espera Média',         unit: 'ut',  decimals: 2 },
-  { key: 'avg_turnaround',     label: 'Turnaround Médio',     unit: 'ut',  decimals: 2 },
-  { key: 'throughput',         label: 'Throughput',           unit: 'p/ut',decimals: 4 },
-  { key: 'cpu_idle_percent',   label: 'CPU Ociosa',           unit: '%',   decimals: 2 },
-  { key: 'num_preemptions',    label: 'Preempções',           unit: '',    decimals: 0 },
-  { key: 'num_context_switches', label: 'Trocas de Contexto', unit: '',    decimals: 0 },
+  { key: 'avg_wait',             label: 'Espera Média',         unit: 'ut',   decimals: 2 },
+  { key: 'avg_turnaround',       label: 'Turnaround Médio',     unit: 'ut',   decimals: 2 },
+  { key: 'throughput',           label: 'Throughput',           unit: 'p/ut', decimals: 4 },
+  { key: 'cpu_idle_percent',     label: 'CPU Ociosa',           unit: '%',    decimals: 2 },
+  { key: 'num_preemptions',      label: 'Preempções',           unit: '',     decimals: 0 },
+  { key: 'num_context_switches', label: 'Trocas de Contexto',   unit: '',     decimals: 0 },
 ];
 
 function renderMetrics(metrics) {
@@ -482,26 +601,36 @@ function renderMetrics(metrics) {
 }
 
 // ─── Result table ─────────────────────────────────────────────────
-function renderResultTable(procResults) {
+function renderResultTable(procResults, showDeadlines = true) {
   resultBody.innerHTML = '';
+
+  // Mostra/oculta colunas de deadline no cabeçalho
+  const resultTable = document.getElementById('resultTable');
+  resultTable.querySelectorAll('.col-deadline').forEach(el => {
+    el.style.display = showDeadlines ? '' : 'none';
+  });
+
   Object.values(procResults).forEach((r, i) => {
     const color = PROCESS_COLORS[i % PROCESS_COLORS.length];
-    const dlBadge = r.deadline_met === true  ? `<span class="badge-ok">✔ OK</span>`
-                  : r.deadline_met === false ? `<span class="badge-fail">✘ Perdido</span>`
-                  : `<span class="badge-none">—</span>`;
+    const dlBadge = !showDeadlines
+      ? `<span class="badge-none">—</span>`
+      : r.deadline_met === true  ? `<span class="badge-ok">✔ OK</span>`
+      : r.deadline_met === false ? `<span class="badge-fail">✘ Perdido</span>`
+      : `<span class="badge-none">—</span>`;
+
     const starts = r.start_times?.join(', ') || '—';
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><span class="pid-badge" style="background:${color}">${r.pid.slice(0,3)}</span> ${r.pid}</td>
       <td>${r.arrival}</td>
       <td>${r.burst}</td>
-      <td>${r.deadline ?? '—'}</td>
+      <td class="col-deadline" style="display:${showDeadlines ? '' : 'none'}">${r.deadline ?? '—'}</td>
       <td>${r.priority}</td>
       <td style="font-size:.78rem">${starts}</td>
       <td>${r.end_time ?? '—'}</td>
       <td>${fmt(r.wait_time, 0)}</td>
       <td>${fmt(r.turnaround, 0)}</td>
-      <td>${dlBadge}</td>`;
+      <td class="col-deadline" style="display:${showDeadlines ? '' : 'none'}">${dlBadge}</td>`;
     resultBody.appendChild(tr);
   });
 }
@@ -511,34 +640,28 @@ function renderCompareTable(results) {
   compareBody.innerHTML = '';
   const algKeys = Object.keys(results);
 
-  // Find best (min) for each metric
+  // Best = menor valor (exceto preemptions: menor também é melhor)
   const best = {};
-  ['avg_wait','avg_turnaround','cpu_idle_percent','num_preemptions','num_context_switches'].forEach(k => {
+  ['avg_wait', 'avg_turnaround', 'num_preemptions'].forEach(k => {
     const vals = algKeys.filter(a => !results[a].error).map(a => results[a].metrics[k]);
     best[k] = Math.min(...vals);
   });
-  const tpVals = algKeys.filter(a => !results[a].error).map(a => results[a].metrics.throughput);
-  best['throughput'] = Math.max(...tpVals);
 
   algKeys.forEach(alg => {
     const d = results[alg];
     const tr = document.createElement('tr');
     if (d.error) {
-      tr.innerHTML = `<td>${d.label || alg}</td><td colspan="6" style="color:var(--danger);font-size:.8rem">${d.error}</td>`;
+      tr.innerHTML = `<td>${d.label || alg}</td><td colspan="3" style="color:var(--danger);font-size:.8rem">${d.error}</td>`;
     } else {
       const m = d.metrics;
-      const isBest = k => {
-        if (k === 'throughput') return m[k] === best[k];
-        return m[k] === best[k];
-      };
-      const cell = (k, dec=2) => {
+      const cell = (k, dec = 2) => {
         const v = fmt(m[k], dec);
-        return isBest(k) ? `<td style="color:var(--accent2);font-weight:700">${v} ★</td>` : `<td>${v}</td>`;
+        return m[k] === best[k]
+          ? `<td style="color:var(--accent2);font-weight:700">${v} ★</td>`
+          : `<td>${v}</td>`;
       };
       tr.innerHTML = `<td>${d.label || alg}</td>
-        ${cell('avg_wait',2)}${cell('avg_turnaround',2)}
-        ${cell('throughput',4)}${cell('cpu_idle_percent',2)}
-        ${cell('num_preemptions',0)}${cell('num_context_switches',0)}`;
+        ${cell('avg_wait', 2)}${cell('avg_turnaround', 2)}${cell('num_preemptions', 0)}`;
     }
     compareBody.appendChild(tr);
   });
@@ -556,10 +679,9 @@ function exportResults() {
 }
 
 // ─── Event listeners ──────────────────────────────────────────────
-document.getElementById('btnAddProc').onclick   = addProc;
-document.getElementById('btnClearProcs').onclick = clearProcs;
-document.getElementById('btnExample').onclick   = generateExample;
-document.getElementById('btnExport').onclick    = exportResults;
+document.getElementById('btnAddProc').onclick    = addProc;
+document.getElementById('btnClearProcs').onclick  = clearProcs;
+document.getElementById('btnExport').onclick     = exportResults;
 
 document.getElementById('btnRun').onclick = () => {
   const alg = document.getElementById('selectAlg').value;
@@ -568,14 +690,19 @@ document.getElementById('btnRun').onclick = () => {
 
 document.getElementById('btnCompare').onclick = () => simulate('todos');
 
-// Redraw Gantt on resize
 window.addEventListener('resize', () => {
-  if (currentResults) drawGantt(currentResults.gantt, currentResults.processes);
-  else if (allResults && activeAlg) drawGantt(allResults[activeAlg].gantt, allResults[activeAlg].processes);
+  if (simStepMode && simGantt.length) {
+    drawGantt(simGantt, simProcs, simStep, simShowDeadlines);
+  } else if (currentResults) {
+    drawGantt(currentResults.gantt, currentResults.processes, undefined,
+              DEADLINE_ALGORITHMS.has(currentResults.algorithm));
+  } else if (allResults && activeAlg) {
+    drawGantt(allResults[activeAlg].gantt, allResults[activeAlg].processes, undefined,
+              DEADLINE_ALGORITHMS.has(activeAlg));
+  }
 });
 
 // ─── Init ─────────────────────────────────────────────────────────
 (async function init() {
-  generateExample();          // start with 5 example processes
-  await fetchCasos();         // load test cases from backend
+  await fetchCasos();
 })();
