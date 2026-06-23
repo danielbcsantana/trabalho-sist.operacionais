@@ -130,6 +130,7 @@
       <span class="text-outline-variant select-none">·</span>
       <div class="font-headline font-bold text-xl text-primary">
         Sistemas <span class="text-secondary italic font-normal">Operacionais</span>
+        
       </div>
     </div>
     <div class="hidden md:flex gap-8 items-center">
@@ -154,16 +155,18 @@
 <main class="pt-20">
 
 <!-- ══════════════════ HERO ══════════════════ -->
-<section class="relative min-h-[480px] flex items-center px-6 md:px-8 max-w-7xl mx-auto overflow-hidden py-16" id="intro">
+<section class="relative min-h-[600px] lg:min-h-[750px] flex items-center px-6 md:px-8 max-w-7xl mx-auto overflow-hidden py-16 lg:py-0" id="intro">
   <div class="z-10 w-full lg:max-w-2xl">
     <span class="text-tertiary uppercase tracking-[0.18em] font-label font-medium text-xs mb-5 block">
       Disciplina · Ciência da Computação
     </span>
     <h1 class="text-[2.4rem] sm:text-[3rem] md:text-[3.6rem] font-headline font-bold text-primary leading-[1.06] mb-6">
-      Sistemas<br/>Operacionais
+      Sistemas<br/>Operacionais<br/>
+      <span class="text-secondary italic">UFBA</span>
     </h1>
+    
     <p class="text-base text-on-surface-variant font-body leading-relaxed mb-10 max-w-xl">
-      Estudo dos mecanismos que gerenciam o hardware de um computador e fornecem serviços para programas de aplicação: processos, threads, memória, sistemas de arquivos e escalonamento.
+      Este site foi desenvolvido para facilitar o estudo dos mecanismos que gerenciam o hardware de um computador e fornecem serviços para programas de aplicação, reunindo conteúdos sobre processos, threads, gerenciamento de memória, sistemas de arquivos e escalonamento.
     </p>
     <div class="flex flex-wrap gap-4">
       <a href="#conceitos" class="bg-primary text-on-primary px-7 py-3.5 rounded-lg font-body font-semibold flex items-center gap-2 hover:scale-[1.02] transition-transform text-sm">
@@ -177,14 +180,12 @@
     </div>
   </div>
   <!-- Decorative element -->
-  <div class="absolute right-0 top-1/2 -translate-y-1/2 w-[42%] hidden lg:flex items-center justify-center">
-    <div class="grid grid-cols-2 gap-4 opacity-20">
-      <div class="w-24 h-24 bg-primary rounded-xl"></div>
-      <div class="w-24 h-24 bg-secondary rounded-xl mt-8"></div>
-      <div class="w-24 h-24 bg-tertiary rounded-xl"></div>
-      <div class="w-24 h-24 bg-primary-container rounded-xl mt-8"></div>
+  <div class="absolute right-0 top-1/2 -translate-y-1/2 w-[46%] h-[78%] hidden lg:block overflow-hidden rounded-xl">
+    <div class="w-full h-full bg-surface-container-high flex items-center justify-center relative">
+      <img src="img/mainIMG.png" alt="Imagem" class="w-full h-auto rounded-lg object-cover">
     </div>
   </div>
+
 </section>
 
 
@@ -967,15 +968,24 @@
 </section>
 
 
-<!-- ══════════════════ FOOTER ══════════════════ -->
+<!-- ══════════════════
+     FOOTER 
+══════════════════ -->
 <footer class="w-full py-8 px-6 border-t border-outline-variant/20 bg-surface-container-low">
-  <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-on-surface-variant font-body">
-    <div>
-      <a href="../index.html" class="hover:text-primary transition-colors font-headline font-bold text-base text-primary">Hub Acadêmico</a>
-      <span class="ml-2 text-outline">·</span>
-      <span class="ml-2">Sistemas Operacionais</span>
-    </div>
-    <p>© 2026 · Projeto acadêmico UFBA</p>
+  <div class="max-w-7xl mx-auto text-center text-sm text-on-surface-variant font-body leading-relaxed">
+
+    <p>
+      © 2026 PSB · UFBA — Projeto acadêmico independente. All rights reserved.
+    </p>
+
+    <p class="mt-2">
+      v1.0.0 · Devs:
+      <a href="https://www.linkedin.com/in/danielbcsantana" target="_blank" class="hover:text-primary underline">Daniel Santana</a>,
+      <a href="https://www.linkedin.com/in/davi-guimarães-de-freitas-6b71652b9/" target="_blank" class="hover:text-primary underline">Davi Guimarães</a>
+      <a href="https://www.linkedin.com/in/gabriel-barreto-batista" target="_blank" class="hover:text-primary underline">Gabriel Barreto</a>,
+      <a href="https://www.linkedin.com/in/leone-castro-98486038a/" target="_blank" class="hover:text-primary underline">Leone Castro</a>,
+    </p>
+
   </div>
 </footer>
 
