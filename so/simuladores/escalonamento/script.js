@@ -9,10 +9,10 @@ const PROCESS_COLORS = [
   '#435b9f','#8b4513','#2d6a8c','#6b2d5e',
   '#3d6b3d','#7a4a00','#1a4d6b','#5c3a1e',
 ];
-const OVERHEAD_COLOR  = '#ba1a1a';
-const IDLE_COLOR      = '#c5c6d2';
-const DEADLINE_COLOR  = '#bdab51';
-const MISS_COLOR      = '#8b0000';
+const OVERHEAD_COLOR  = '#d97706'; // âmbar — custo de troca, não é erro
+const IDLE_COLOR      = '#c5c6d2'; // cinza — CPU ociosa, neutro
+const DEADLINE_COLOR  = '#bdab51'; // ouro — marcador de deadline
+const MISS_COLOR      = '#dc2626'; // vermelho — deadline violado, condição de erro
 
 // ─── State ───────────────────────────────────────────────────────
 let processes = [];
@@ -667,21 +667,9 @@ function renderCompareTable(results) {
   });
 }
 
-// ─── Export ───────────────────────────────────────────────────────
-function exportResults() {
-  const data = allResults || currentResults;
-  if (!data) { toast('Nenhum resultado para exportar.', 'error'); return; }
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `resultado_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.json`;
-  a.click();
-}
-
 // ─── Event listeners ──────────────────────────────────────────────
 document.getElementById('btnAddProc').onclick    = addProc;
 document.getElementById('btnClearProcs').onclick  = clearProcs;
-document.getElementById('btnExport').onclick     = exportResults;
 
 document.getElementById('btnRun').onclick = () => {
   const alg = document.getElementById('selectAlg').value;

@@ -1,0 +1,10 @@
+{
+  "descricao": "Caso base do spec — 3 processos exatos do enunciado do trabalho",
+  "quantum": 2,
+  "sobrecarga": 1,
+  "processos": [
+    {"pid": "P1", "chegada": 0, "execucao": 5, "deadline": 8,  "prioridade": 2},
+    {"pid": "P2", "chegada": 1, "execucao": 4, "deadline": 12, "prioridade": 1},
+    {"pid": "P3", "chegada": 3, "execucao": 2, "deadline": 20, "prioridade": 3}
+  ]
+}
