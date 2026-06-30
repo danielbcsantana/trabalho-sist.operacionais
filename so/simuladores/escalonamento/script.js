@@ -29,6 +29,7 @@ let simMaxStep      = 0;
 let simStepMode     = false;
 let simShowDeadlines = false;
 let simScoreLog     = [];
+let simVrLog        = [];
 
 // Algoritmos que usam deadline como critério de escalonamento
 const DEADLINE_ALGORITHMS = new Set(['edf']);
@@ -53,6 +54,68 @@ const metricsDiv     = document.getElementById('metricsDiv');
 const resultTableDiv = document.getElementById('resultTableDiv');
 const apsScoreLog    = document.getElementById('apsScoreLog');
 const apsScoreBody   = document.getElementById('apsScoreBody');
+const cfsVrLog       = document.getElementById('cfsVrLog');
+const cfsVrBody      = document.getElementById('cfsVrBody');
+
+// ─── CFS vruntime Log ────────────────────────────────────────────
+function renderVrLog(vrLog) {
+  cfsVrBody.innerHTML = '';
+  vrLog.forEach((entry, idx) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'cfs-vr-entry';
+    wrap.dataset.idx = idx;
+    wrap.style.cssText = 'margin-bottom:10px;opacity:0.25;transition:opacity .25s';
+
+    const header = document.createElement('div');
+    header.style.cssText = 'font-size:.7rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px';
+    header.textContent = `t = ${entry.time}`;
+    wrap.appendChild(header);
+
+    const table = document.createElement('table');
+    table.style.cssText = 'width:100%;border-collapse:collapse;font-size:.74rem';
+    table.innerHTML = `
+      <thead>
+        <tr style="color:var(--text-muted);border-bottom:1px solid var(--border)">
+          <th style="text-align:left;padding:2px 6px;font-weight:600">Processo</th>
+          <th style="text-align:center;padding:2px 6px;font-weight:600">Peso (1.25^p-1)</th>
+          <th style="text-align:center;padding:2px 6px;font-weight:600">vruntime</th>
+          <th style="text-align:left;padding:2px 6px;font-weight:600">Barra</th>
+        </tr>
+      </thead>`;
+
+    const tbody = document.createElement('tbody');
+    const maxVr = Math.max(...entry.snapshot.map(s => s.vruntime), 1);
+
+    entry.snapshot.forEach(s => {
+      const chosen = s.pid === entry.chosen;
+      const tr = document.createElement('tr');
+      tr.style.cssText = chosen ? 'background:rgba(45,106,140,.08);font-weight:600' : 'color:var(--text-muted)';
+      const star = chosen ? '★ ' : '　';
+      const pct  = Math.round((s.vruntime / maxVr) * 100);
+      const barColor = chosen ? '#2d6a8c' : '#c5c6d2';
+      tr.innerHTML = `
+        <td style="padding:3px 6px">${star}${s.pid}</td>
+        <td style="text-align:center;padding:3px 6px;font-family:monospace">${s.weight.toFixed(2)}</td>
+        <td style="text-align:center;padding:3px 6px;font-weight:700;color:var(--primary);font-family:monospace">${s.vruntime.toFixed(2)}</td>
+        <td style="padding:3px 6px;min-width:80px">
+          <div style="height:6px;border-radius:3px;background:#eee;overflow:hidden">
+            <div style="height:100%;width:${pct}%;background:${barColor};transition:width .3s"></div>
+          </div>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    cfsVrBody.appendChild(wrap);
+  });
+}
+
+function updateVrLogStep(currentTime) {
+  document.querySelectorAll('.cfs-vr-entry').forEach(el => {
+    const entryTime = simVrLog[+el.dataset.idx]?.time ?? Infinity;
+    el.style.opacity = entryTime <= currentTime ? '1' : '0.2';
+  });
+}
 
 // ─── APS Score Log ───────────────────────────────────────────────
 function renderScoreLog(scoreLog) {
@@ -321,6 +384,7 @@ function showSingleResult(data) {
   simStepMode      = true;
   simShowDeadlines = showDeadlines;
   simScoreLog      = data.score_log || [];
+  simVrLog         = data.vr_log    || [];
 
   metricsDiv.style.display     = 'none';
   resultTableDiv.style.display = 'none';
@@ -333,6 +397,15 @@ function showSingleResult(data) {
     updateScoreLogStep(-1);
   } else {
     apsScoreLog.style.display = 'none';
+  }
+
+  // CFS vruntime log
+  if (data.algorithm === 'cfs' && simVrLog.length > 0) {
+    cfsVrLog.style.display = 'block';
+    renderVrLog(simVrLog);
+    updateVrLogStep(-1);
+  } else {
+    cfsVrLog.style.display = 'none';
   }
 
   updateStepUI();
@@ -370,10 +443,9 @@ function updateStepUI() {
 
   drawGantt(simGantt, simProcs, simStep, simShowDeadlines);
 
-  if (simScoreLog.length > 0) {
-    const currentTime = simStep > 0 ? simGantt[simStep - 1].start : -1;
-    updateScoreLogStep(currentTime);
-  }
+  const currentTime = simStep > 0 ? simGantt[simStep - 1].start : -1;
+  if (simScoreLog.length > 0) updateScoreLogStep(currentTime);
+  if (simVrLog.length > 0)    updateVrLogStep(currentTime);
 }
 
 function prevStep() {

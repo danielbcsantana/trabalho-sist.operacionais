@@ -21,12 +21,15 @@ def run(processes, quantum, overhead, **kwargs):
     gantt = []
     remaining = {p.pid: p.burst for p in processes}
     vruntime = {}
+    priority_map = {p.pid: p.priority for p in processes}
     start_times = {p.pid: [] for p in processes}
     end_times = {}
+    vr_log = []
 
     pending = sorted(processes, key=lambda p: (p.arrival, p.pid))
     ready = []
     last_pid = None
+    last_was_preempted = False
     context_switches = 0
     preemptions = 0
 
@@ -43,6 +46,20 @@ def run(processes, quantum, overhead, **kwargs):
             pending.remove(p)
             _arrive(p)
 
+    def _snapshot(chosen_pid):
+        return sorted(
+            [
+                {
+                    'pid':      pid,
+                    'vruntime': round(vr, 2),
+                    'weight':   round(_weight(priority_map[pid]), 2),
+                }
+                for pid, vr in vruntime.items()
+                if remaining.get(pid, 0) > 0 or pid == chosen_pid
+            ],
+            key=lambda e: e['vruntime']
+        )
+
     _add_arrivals(0)
 
     while pending or ready:
@@ -57,8 +74,8 @@ def run(processes, quantum, overhead, **kwargs):
         current = min(ready, key=lambda p: (vruntime[p.pid], p.pid))
         ready.remove(current)
 
-        # Overhead only when process changes
-        if last_pid is not None and last_pid != current.pid:
+        # Overhead only when process changes due to preemption, not natural completion
+        if last_pid is not None and last_pid != current.pid and last_was_preempted:
             if overhead > 0:
                 gantt.append({'type': 'overhead', 'pid': last_pid,
                               'start': time, 'end': time + overhead})
@@ -66,9 +83,14 @@ def run(processes, quantum, overhead, **kwargs):
                 _add_arrivals(time)
             context_switches += 1
 
-        # New start time only when process changes
+        # Log and record start only when process changes
         if current.pid != last_pid:
             start_times[current.pid].append(time)
+            vr_log.append({
+                'time':     time,
+                'chosen':   current.pid,
+                'snapshot': _snapshot(current.pid),
+            })
 
         # Dynamic slice of 1 unit — no fixed quantum
         slice_t = min(1, remaining[current.pid])
@@ -83,11 +105,19 @@ def run(processes, quantum, overhead, **kwargs):
 
         if remaining[current.pid] <= 0:
             end_times[current.pid] = time
+            last_was_preempted = False
         else:
             if ready:
                 best_vr = min(vruntime[p.pid] for p in ready)
                 if best_vr < vruntime[current.pid]:
                     preemptions += 1
+                    last_was_preempted = True
+                else:
+                    last_was_preempted = False
+            else:
+                last_was_preempted = False
             ready.append(current)
 
-    return compute_results(processes, start_times, end_times, gantt, context_switches, preemptions)
+    result = compute_results(processes, start_times, end_times, gantt, context_switches, preemptions)
+    result['vr_log'] = vr_log
+    return result
