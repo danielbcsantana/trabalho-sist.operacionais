@@ -1,11 +1,10 @@
 {
-  "descricao": "Caso APS — demonstra os 3 componentes: P2 domina por prioridade, P3 preempta por urgência de deadline, P1 sobrevive por aging",
+  "descricao": "Caso APS — P2 (prioridade=4) preempta P1 (prioridade=1) por urgência crítica de deadline (slack negativo). Impossível com Prioridade pura.",
   "quantum": 2,
   "sobrecarga": 1,
   "processos": [
-    {"pid": "P1", "chegada": 0, "execucao": 7, "deadline": null, "prioridade": 5},
-    {"pid": "P2", "chegada": 0, "execucao": 4, "deadline": 30,  "prioridade": 1},
-    {"pid": "P3", "chegada": 3, "execucao": 3, "deadline": 7,   "prioridade": 3},
-    {"pid": "P4", "chegada": 6, "execucao": 2, "deadline": null, "prioridade": 4}
+    {"pid": "P1", "chegada": 0, "execucao": 5, "deadline": null, "prioridade": 1},
+    {"pid": "P2", "chegada": 2, "execucao": 2, "deadline": 3,   "prioridade": 4},
+    {"pid": "P3", "chegada": 1, "execucao": 6, "deadline": null, "prioridade": 5}
   ]
 }

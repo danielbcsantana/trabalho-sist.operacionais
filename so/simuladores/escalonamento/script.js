@@ -217,7 +217,6 @@ function renderProcTable() {
       <td><input type="number" value="${p.execucao}"  data-field="execucao"  data-idx="${i}" min="1"  style="width:68px"/></td>
       <td><input type="number" value="${p.deadline ?? ''}" data-field="deadline" data-idx="${i}" min="1" placeholder="—" style="width:78px"/></td>
       <td><input type="number" value="${p.prioridade}" data-field="prioridade" data-idx="${i}" min="1" max="10" style="width:68px"/></td>
-      <td><input type="number" value="${p.num_paginas ?? 0}" data-field="num_paginas" data-idx="${i}" min="0" style="width:68px"/></td>
       <td>
         <button class="btn btn-danger btn-sm" onclick="removeProc(${i})">✕</button>
       </td>`;
@@ -248,7 +247,6 @@ function addProc() {
     execucao: 4,
     deadline: null,
     prioridade: 1,
-    num_paginas: 0,
   });
   renderProcTable();
 }
@@ -283,7 +281,6 @@ async function loadCaso(dados) {
     execucao: p.execucao,
     deadline: p.deadline ?? null,
     prioridade: p.prioridade ?? 1,
-    num_paginas: p.num_paginas ?? 0,
   }));
   pidCounter = processes.length + 1;
   document.getElementById('cfgQuantum').value  = dados.quantum   ?? 2;
