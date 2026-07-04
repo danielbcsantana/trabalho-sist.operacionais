@@ -8,45 +8,38 @@ def _weight(priority):
 def run(processes, quantum, overhead, **kwargs):
     """
     CFS-Sim: Completely Fair Scheduler (simplified).
-
-    vruntime grows proportionally to priority weight:
         vruntime += Δt × 1.25^(priority - 1)
-    Lower priority number → smaller weight → slower growth → more CPU time.
-
-    No fixed quantum: the process with smallest vruntime is always selected.
-    Slice size = 1 unit; preemption occurs whenever a ready process has a
-    smaller vruntime than the currently running process.
     """
-    time = 0
-    gantt = []
-    remaining = {p.pid: p.burst for p in processes}
-    vruntime = {}
-    priority_map = {p.pid: p.priority for p in processes}
-    start_times = {p.pid: [] for p in processes}
-    end_times = {}
-    vr_log = []
+    time = 0 #inicia tempo atual do simulador
+    gantt = []#inicia lista pra "monitorar" oque acontece pra fazer o gantt
+    remaining = {p.pid: p.burst for p in processes}#dicionario que vincula o PID com o burst
+    vruntime = {}#dicionario pra armazenar o vruntime de cada processo 
+    priority_map = {p.pid: p.priority for p in processes}#dicionario que vincula o PID com a prioridade 
+    start_times = {p.pid: [] for p in processes}#dicionario que vincula o PID com os tempos que cada processo inicia, no caso ai ta vazio ainda
+    end_times = {}#mesma coisa so que com o tempo que termina 
+    vr_log = []#lista para monitorar o historico do escalonador
 
-    pending = sorted(processes, key=lambda p: (p.arrival, p.pid))
-    ready = []
-    last_pid = None
-    last_was_preempted = False
-    context_switches = 0
-    preemptions = 0
+    pending = sorted(processes, key=lambda p: (p.arrival, p.pid)) # lista de pendentes em ordem de chegada e PID
+    ready = []#lista de prontos 
+    last_pid = None #PID do ultimo 
+    last_was_preempted = False#indica se o ultimo foi preemptado
+    context_switches = 0# contator de trocas de contexto
+    preemptions = 0# contador de preempcoes
 
-    def _arrive(p):
-        if ready:
+    def _arrive(p): # funcao pra quando um processo chegar
+        if ready:# dado um processo p, se tiver outros processos prontos , o mais novo recebe o menor vruntime deles, so pra evitar que um processo novo receba 0 ai 
             vruntime[p.pid] = min(vruntime[r.pid] for r in ready)
         else:
-            vruntime[p.pid] = float(time)
+            vruntime[p.pid] = float(time)# se n tiver, o vrun inicial vira o tempo atual da simulacao
         ready.append(p)
 
-    def _add_arrivals(t):
+    def _add_arrivals(t):#coloca todos os projetos em que o tempo de chegada foi ultrapassado ja em prontos 
         arrived = [p for p in pending if p.arrival <= t]
         for p in arrived:
             pending.remove(p)
             _arrive(p)
 
-    def _snapshot(chosen_pid):
+    def _snapshot(chosen_pid):#isso aqui eh basicamente um feedback do processo naquele momento pro log do vruntime
         return sorted(
             [
                 {
@@ -62,28 +55,28 @@ def run(processes, quantum, overhead, **kwargs):
 
     _add_arrivals(0)
 
-    while pending or ready:
-        if not ready:
-            next_t = min(p.arrival for p in pending)
-            gantt.append({'type': 'idle', 'pid': None, 'start': time, 'end': next_t})
-            time = next_t
-            _add_arrivals(time)
+    while pending or ready:# 
+        if not ready:# esquema pra verificar cpu ociosa
+            next_t = min(p.arrival for p in pending)#variavel com o tempo de inicio o proximo processo
+            gantt.append({'type': 'idle', 'pid': None, 'start': time, 'end': next_t})#registra a parte ociosa no gantt
+            time = next_t #passa o tempo pro proximo tempo em que um processo vair estar pronto
+            _add_arrivals(time)#move o q tava em pendente para pronto
             last_pid = None
             continue
 
-        current = min(ready, key=lambda p: (vruntime[p.pid], p.pid))
-        ready.remove(current)
+        current = min(ready, key=lambda p: (vruntime[p.pid], p.pid))# variavel para pegar o processo com menor vruntime
+        ready.remove(current)#remove ele de ready
 
-        # Overhead only when process changes due to preemption, not natural completion
-        if last_pid is not None and last_pid != current.pid and last_was_preempted:
+        # Overhead 
+        if last_pid is not None and last_pid != current.pid and last_was_preempted:#verifica condicoes basicas pra aplicar o overfead
             if overhead > 0:
-                gantt.append({'type': 'overhead', 'pid': last_pid,
+                gantt.append({'type': 'overhead', 'pid': last_pid,# atualiza o gantt com o overhead
                               'start': time, 'end': time + overhead})
-                time += overhead
-                _add_arrivals(time)
+                time += overhead#atualiza o tempo de simulacao
+                _add_arrivals(time)#chama a funcao pra puxar os processo que tao prontos
             context_switches += 1
 
-        # Log and record start only when process changes
+        # aqui eh o log pra mostrar as escolhas, so mostra quando um processo acaba, nao toda hora ou a cada unidade de tempo
         if current.pid != last_pid:
             start_times[current.pid].append(time)
             vr_log.append({
@@ -92,26 +85,26 @@ def run(processes, quantum, overhead, **kwargs):
                 'snapshot': _snapshot(current.pid),
             })
 
-        # Dynamic slice of 1 unit — no fixed quantum
-        slice_t = min(1, remaining[current.pid])
-        gantt.append({'type': 'execution', 'pid': current.pid,
+        # esquema do 'slice" em que os processos sao reavaliados
+        slice_t = min(1, remaining[current.pid])#roda o menor entre 1 e o restante do processo , geralmente 1 mesmo 
+        gantt.append({'type': 'execution', 'pid': current.pid,#atualiza o gantt
                       'start': time, 'end': time + slice_t})
-        time += slice_t
-        remaining[current.pid] -= slice_t
-        vruntime[current.pid] += slice_t * _weight(current.priority)
+        time += slice_t#atualiza o tempo do simulador
+        remaining[current.pid] -= slice_t#atualiza oq falta do processo 
+        vruntime[current.pid] += slice_t * _weight(current.priority)#atualiza o vruntime
 
         last_pid = current.pid
         _add_arrivals(time)
 
-        if remaining[current.pid] <= 0:
+        if remaining[current.pid] <= 0:#verifica se o processo acabou
             end_times[current.pid] = time
-            last_was_preempted = False
+            last_was_preempted = False#se acabbou, ele obviamente nao foi preemptado
         else:
-            if ready:
+            if ready:#caso esteja pronto,compara o vruntime menor com o que ta rodando
                 best_vr = min(vruntime[p.pid] for p in ready)
-                if best_vr < vruntime[current.pid]:
+                if best_vr < vruntime[current.pid]:#se for mais justo que o outro, entao substitui 
                     preemptions += 1
-                    last_was_preempted = True
+                    last_was_preempted = True#como o processo n acabou, ele preemptou
                 else:
                     last_was_preempted = False
             else:
