@@ -55,7 +55,7 @@ def run(processes, quantum, overhead, **kwargs):
 
     _add_arrivals(0)
 
-    while pending or ready:# 
+    while pending or ready:#enquanto exister processo
         if not ready:# esquema pra verificar cpu ociosa
             next_t = min(p.arrival for p in pending)#variavel com o tempo de inicio o proximo processo
             gantt.append({'type': 'idle', 'pid': None, 'start': time, 'end': next_t})#registra a parte ociosa no gantt
