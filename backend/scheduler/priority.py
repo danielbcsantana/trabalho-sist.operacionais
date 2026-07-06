@@ -1,4 +1,4 @@
-from .base import compute_results, add_arrivals
+from .base import compute_results, add_arrivals #add arrivals pega processos que chegaram e os coloca na fila de prontos. Compute results calcula a smétricas.
 
 
 def run(processes, quantum, overhead, **kwargs):
