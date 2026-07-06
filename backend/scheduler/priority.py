@@ -9,13 +9,13 @@ def run(processes, quantum, overhead, **kwargs):
     start_times = {p.pid: [] for p in processes} # como o algortimo é preemptivo, é possível que seja necessário guardar mais de um inicio para cada processo (dicionario com cada projeto com sua lista)
     end_times = {} # lista de tempos em que os processos acabam
 
-    pending = sorted(processes, key=lambda p: (p.arrival, p.pid)) #ordena os precessos na lista de pendentes com base em tempo de chegada e em caso de empate pid
-    ready = []
-    last_pid = None
-    context_switches = 0
-    preemptions = 0
+    pending = sorted(processes, key=lambda p: (p.arrival, p.pid)) #ordena os precessos na lista de pendentes com base em tempo de chegada e em caso de empate pid (aqui os procesos não chegaram necessariamente)
+    ready = [] # fila de prontos (ja chegaram, não terminaram e estão esperando cpu)
+    last_pid = None # o ultimo processo que foi executado
+    context_switches = 0 #numero de troca de contextos
+    preemptions = 0 #numero de preempções
 
-    add_arrivals(pending, ready, time)
+    add_arrivals(pending, ready, time) #quais processos ja deveriam ter chegado? move de pending pra ready
 
     current = None
 
