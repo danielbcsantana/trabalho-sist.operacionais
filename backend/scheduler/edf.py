@@ -48,6 +48,8 @@ def run(processes, quantum, overhead, **kwargs):
             next_event = min(next_event, min(p.arrival for p in pending)) #mesma ideia do priority.py, só que resumida numa linha só: compara com a proxima chegada
 
         run_for = next_event - time #quanto tempo a simulação deverá correr, proximo evento - o tempo atual
+
+        #esse if ocorre quando não temos mais processos pendenetes ou seja não há risco de preempção e o processo pode rodar naturalmente
         if run_for <= 0: #se o intervalo de execução for menor = 0 ignorar conta
             run_for = remaining[current.pid] #e rodar o tempo restante
             next_event = time + run_for #tempo atual + quanto falta pra executar
