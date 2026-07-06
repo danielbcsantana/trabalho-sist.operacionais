@@ -4,12 +4,12 @@ from .base import compute_results, add_arrivals #add arrivals pega processos que
 def run(processes, quantum, overhead, **kwargs):
     """Preemptive priority scheduling. Lower priority number = higher priority."""
     time = 0
-    gantt = []
-    remaining = {p.pid: p.burst for p in processes}
-    start_times = {p.pid: [] for p in processes}
-    end_times = {}
+    gantt = [] # ficará guardado o histórico para desenhar o gantt
+    remaining = {p.pid: p.burst for p in processes} # dicionario que cuida do tempo que falta de cada processo (necessário pois o burst é um dado original do processo (remaining vai atualizando))
+    start_times = {p.pid: [] for p in processes} # como o algortimo é preemptivo, é possível que seja necessário guardar mais de um inicio para cada processo (dicionario com cada projeto com sua lista)
+    end_times = {} # lista de tempos em que os processos acabam
 
-    pending = sorted(processes, key=lambda p: (p.arrival, p.pid))
+    pending = sorted(processes, key=lambda p: (p.arrival, p.pid)) #ordena os precessos na lista de pendentes com base em tempo de chegada e em caso de empate pid
     ready = []
     last_pid = None
     context_switches = 0
